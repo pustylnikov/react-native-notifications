@@ -93,8 +93,8 @@ const {width} = Dimensions.get('window');
 export class NotificationContainer extends Component<NotificationContainerProps, NotificationContainerState> {
 
     static defaultProps: Partial<NotificationContainerProps> = {
-        showDuration: 150,
-        hideDuration: 150,
+        showDuration: 300,
+        hideDuration: 300,
         autoCloseTimeout: 0,
         nextNotificationInterval: 100,
         closeSwipeDistance: 0.6,
