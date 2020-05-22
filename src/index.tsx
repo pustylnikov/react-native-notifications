@@ -47,6 +47,7 @@ export type Notification = {
     renderProps?: AnyObject
     animationMethod?: AnimationMethods
     animationOptions?: AnimationConfig
+    enableOnPressAnimation?: boolean
 }
 
 type PreparedNotification = {
@@ -61,6 +62,7 @@ type PreparedNotification = {
     animationMethod: AnimationMethods
     renderProps: AnyObject | undefined
     animationOptions: AnimationConfig
+    enableOnPressAnimation: boolean
 }
 
 export type NotificationContainerProps = {
@@ -71,6 +73,7 @@ export type NotificationContainerProps = {
     nextNotificationInterval: number
     closeSwipeDistance: number,
     closeSwipeVelocity: number,
+    enableOnPressAnimation: boolean
     animationMethod: AnimationMethods
     openAnimationTypes: AnimationTypes[]
     closeAnimationTypes: AnimationTypes[]
@@ -104,6 +107,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
         allowCloseSwipeTypes: [SwipeTypes.SLIDE_UP],
         animationMethod: AnimationMethods.timing,
         animationOptions: {},
+        enableOnPressAnimation: true,
     };
 
     /**
@@ -130,6 +134,11 @@ export class NotificationContainer extends Component<NotificationContainerProps,
      * Drag animation by Y
      */
     protected translateY = new Animated.Value(0);
+
+    /**
+     * Scale animation
+     */
+    protected scale = new Animated.Value(1);
 
     /**
      *
@@ -226,12 +235,35 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             const absVx = Math.abs(gesture.vx);
             const absVy = Math.abs(gesture.vy);
             const {onPress: onPressProp, closeSwipeVelocity, closeSwipeDistance} = this.props;
-            const {onPress: onPressNotify, allowCloseSwipeTypes, renderProps} = this.notification;
+            const {onPress: onPressNotify, allowCloseSwipeTypes, renderProps, enableOnPressAnimation} = this.notification;
 
             if (absDx <= 1 && absDy <= 1) {
-                onPressProp && onPressProp(renderProps);
-                onPressNotify && onPressNotify();
-                this.startCloseTimeout();
+                if (enableOnPressAnimation) {
+                    Animated.sequence([
+                        Animated.timing(this.scale, {
+                            toValue: 1.05,
+                            duration: 100,
+                            useNativeDriver: false,
+                        }),
+                        Animated.timing(this.scale, {
+                            toValue: 1,
+                            duration: 100,
+                            useNativeDriver: false,
+                        }),
+                    ]).start(() => {
+                        onPressProp && onPressProp(renderProps);
+                        onPressNotify && onPressNotify();
+                        setTimeout(() => {
+                            this.close();
+                        });
+                    });
+                } else {
+                    onPressProp && onPressProp(renderProps);
+                    onPressNotify && onPressNotify();
+                    setTimeout(() => {
+                        this.close();
+                    });
+                }
             } else if (this.swipeDirection === SwipeDirections.X) {
                 if (absVx >= closeSwipeVelocity || absDx >= closeSwipeDistance * width) {
                     if (gesture.dx > 0) {
@@ -352,6 +384,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             closeAnimationTypes: this.props.closeAnimationTypes,
             allowCloseSwipeTypes: this.props.allowCloseSwipeTypes,
             animationMethod: this.props.animationMethod,
+            enableOnPressAnimation: this.props.enableOnPressAnimation,
             ...notification,
         });
         this.notifications.sort((a, b) => b.priority - a.priority);
@@ -521,6 +554,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
                         transform: [
                             {translateX: this.translateX},
                             {translateY: this.translateY},
+                            {scale: this.scale},
                         ],
                     },
                 ]}
