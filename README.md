@@ -1,3 +1,5 @@
+![preview](https://github.com/pustylnikov/react-native-notifications/blob/master/readme/preview.gif?raw=true)
+
 ### Install
 using npm
 ```
