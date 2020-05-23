@@ -36,6 +36,7 @@ export enum AnimationMethods {
 export type AnimationConfig = Partial<Animated.TimingAnimationConfig> | Partial<Animated.SpringAnimationConfig>;
 
 export type Notification = {
+    renderProps?: AnyObject
     onClose?: () => void
     onOpen?: () => void
     onPress?: () => void
@@ -44,7 +45,6 @@ export type Notification = {
     openAnimationTypes?: AnimationTypes[]
     closeAnimationTypes?: AnimationTypes[]
     allowCloseSwipeTypes?: SwipeTypes[]
-    renderProps?: AnyObject
     animationMethod?: AnimationMethods
     animationOptions?: AnimationConfig
     enableOnPressAnimation?: boolean
@@ -67,8 +67,8 @@ type PreparedNotification = {
 
 export type NotificationContainerProps = {
     render: (renderProps?: AnyObject) => ReactNode
-    showDuration: number
-    hideDuration: number
+    openDuration: number
+    closeDuration: number
     autoCloseTimeout: number
     nextNotificationInterval: number
     closeSwipeDistance: number,
@@ -82,6 +82,7 @@ export type NotificationContainerProps = {
     onClose?: (renderProps?: AnyObject) => void
     onOpen?: (renderProps?: AnyObject) => void
     onPress?: (renderProps?: AnyObject) => void
+    propsAreEqual?: (prevProps: Readonly<NotificationContainerProps>, nextProps: Readonly<NotificationContainerProps>) => boolean
 }
 
 type NotificationContainerState = {
@@ -96,8 +97,8 @@ const {width} = Dimensions.get('window');
 export class NotificationContainer extends Component<NotificationContainerProps, NotificationContainerState> {
 
     static defaultProps: Partial<NotificationContainerProps> = {
-        showDuration: 300,
-        hideDuration: 300,
+        openDuration: 300,
+        closeDuration: 300,
         autoCloseTimeout: 0,
         nextNotificationInterval: 100,
         closeSwipeDistance: 0.6,
@@ -427,12 +428,12 @@ export class NotificationContainer extends Component<NotificationContainerProps,
         if (!this.notification) {
             return;
         }
-        const {showDuration, onOpen} = this.props;
+        const {openDuration, onOpen} = this.props;
         const {animationMethod, renderProps, onOpen: onOpenNotify, animationOptions} = this.notification;
         Animated[animationMethod](this.animation, {
             ...animationOptions,
             toValue: 1,
-            duration: showDuration,
+            duration: openDuration,
             useNativeDriver: false,
         }).start(({finished}) => {
             if (finished) {
@@ -460,10 +461,10 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             swipeClosingType: swipeClosingType || null,
         }, () => {
             this.animation.stopAnimation(() => {
-                const {hideDuration, onClose, nextNotificationInterval} = this.props;
+                const {closeDuration, onClose, nextNotificationInterval} = this.props;
                 Animated.timing(this.animation, {
                     toValue: 0,
-                    duration: hideDuration,
+                    duration: closeDuration,
                     useNativeDriver: false,
                 }).start(({finished}) => {
                     if (finished) {
@@ -513,16 +514,33 @@ export class NotificationContainer extends Component<NotificationContainerProps,
     };
 
     /**
+     *
+     * @param nextProps
+     * @param nextState
+     */
+    shouldComponentUpdate(nextProps: Readonly<NotificationContainerProps>, nextState: Readonly<NotificationContainerState>): boolean {
+        const {propsAreEqual} = this.props;
+        const {visible, height, closing, swipeClosingType} = this.state;
+        return !(
+            visible === nextState.visible
+            && height === nextState.height
+            && closing === nextState.closing
+            && swipeClosingType === nextState.swipeClosingType
+            && (propsAreEqual ? propsAreEqual(this.props, nextProps) : true)
+        );
+    }
+
+    /**
      * Mount
      */
-    componentDidMount() {
+    componentDidMount(): void {
         this.mount = true;
     }
 
     /**
      * Unmount
      */
-    componentWillUnmount() {
+    componentWillUnmount(): void {
         this.timeout && clearTimeout(this.timeout);
         this.animation.stopAnimation();
         this.translateX.stopAnimation();
