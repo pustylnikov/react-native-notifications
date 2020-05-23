@@ -1,6 +1,6 @@
 {
   "name": "@anvilapp/react-native-notifications",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "react native bottom sheet",
   "main": "index.js",
   "types": "index.d.ts",

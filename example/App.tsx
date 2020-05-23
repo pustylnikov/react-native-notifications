@@ -1,7 +1,7 @@
 import React, {FC} from 'react';
 import {Button, SafeAreaView, StatusBar, StyleSheet, Text, View} from 'react-native';
 import {AnimationMethods, AnimationTypes, NotificationContainer, SwipeTypes} from '../src';
-import {openNotification, setNotificationsRef} from '../src/helper';
+import {closeAllNotifications, closeNotification, openNotification, setNotificationsRef} from '../src/helper';
 
 const TITLE_1 = '📨 Notification title';
 const TEXT_1 = 'Ut ac odio nunc. Nulla pellentesque blandit elit, ut commodo ante condimentum pulvinar. Nam convallis neque sit amet dolor placerat venenatis. Etiam ac aliquet justo.';
@@ -32,10 +32,7 @@ const App = () => {
                                 title="Show Notification"
                                 onPress={() => {
                                     openNotification({
-                                        renderProps: {
-                                            title: TITLE_1,
-                                            text: TEXT_1,
-                                        },
+                                        render: () => <Notification title={TITLE_1} text={TEXT_1}/>,
                                     });
                                 }}
                             />
@@ -46,10 +43,7 @@ const App = () => {
                                 title="Show Notification with extra params"
                                 onPress={() => {
                                     openNotification({
-                                        renderProps: {
-                                            title: TITLE_2,
-                                            text: TEXT_2,
-                                        },
+                                        render: () => <Notification title={TITLE_2} text={TEXT_2}/>,
                                         onOpen: () => console.log('On open notify'),
                                         onPress: () => console.log('On press notify'),
                                         onClose: () => console.log('On close notify'),
@@ -57,6 +51,24 @@ const App = () => {
                                         autoCloseTimeout: 5000,
                                         enableOnPressAnimation: false,
                                     });
+                                }}
+                            />
+                        </View>
+
+                        <View style={styles.buttonView}>
+                            <Button
+                                title="Close Notification"
+                                onPress={() => {
+                                    closeNotification();
+                                }}
+                            />
+                        </View>
+
+                        <View style={styles.buttonView}>
+                            <Button
+                                title="Close All Notifications"
+                                onPress={() => {
+                                    closeAllNotifications();
                                 }}
                             />
                         </View>
@@ -78,13 +90,9 @@ const App = () => {
                 animationOptions={{
                     bounciness: 10,
                 }}
-                onClose={(props: any) => console.log('OnClose', props)}
-                onOpen={(props: any) => console.log('onOpen', props)}
-                onPress={(props: any) => console.log('onPress', props)}
-                render={(props: any) => {
-                    console.log('render notification', props);
-                    return <Notification {...props} />;
-                }}
+                onClose={() => console.log('OnClose')}
+                onOpen={() => console.log('onOpen')}
+                onPress={() => console.log('onPress')}
             />
         </>
     );

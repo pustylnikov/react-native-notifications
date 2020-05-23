@@ -13,26 +13,22 @@ yarn add @anvilapp/react-native-notifications
 [See the full usage example here.](https://github.com/pustylnikov/react-native-notifications/blob/master/example/App.tsx)
 
 ### Usage example
-```javascript
+```jsx
 import { NotificationContainer } from '@anvilapp/react-native-notifications';
 
 const notificationsRef = React.createRef();
 
 <NotificationContainer
     ref={notificationRef}
-    render={({title, text}) => (
-        <View style={styles.notification}>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.text}>{text}</Text>
-        </View>
-    )}
 />
 
 // Show notification
 notificationRef.current.open({
-    renderProps: {
-        title: 'Title',
-        text: 'Text',
-    },
+    render={() => (
+        <View style={styles.notification}>
+            <Text style={styles.title}>Title</Text>
+            <Text style={styles.text}>Text</Text>
+        </View>
+    )},
 });
 ```

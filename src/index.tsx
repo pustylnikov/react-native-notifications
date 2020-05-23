@@ -36,37 +36,46 @@ export enum AnimationMethods {
 export type AnimationConfig = Partial<Animated.TimingAnimationConfig> | Partial<Animated.SpringAnimationConfig>;
 
 export type Notification = {
-    renderProps?: AnyObject
-    onClose?: () => void
-    onOpen?: () => void
-    onPress?: () => void
+    render: () => ReactNode
+    openDuration?: number
+    closeDuration?: number
+    nextNotificationInterval?: number
     priority?: number
     autoCloseTimeout?: number
+    closeSwipeDistance?: number,
+    closeSwipeVelocity?: number,
     openAnimationTypes?: AnimationTypes[]
     closeAnimationTypes?: AnimationTypes[]
     allowCloseSwipeTypes?: SwipeTypes[]
     animationMethod?: AnimationMethods
     animationOptions?: AnimationConfig
     enableOnPressAnimation?: boolean
+    onClose?: () => void
+    onOpen?: () => void
+    onPress?: () => void
 }
 
 type PreparedNotification = {
-    onClose: (() => void) | null
-    onOpen: (() => void) | null
-    onPress: (() => void) | null
+    render: () => ReactNode
+    openDuration: number
+    closeDuration: number
+    nextNotificationInterval: number
     priority: number
     autoCloseTimeout: number
+    closeSwipeDistance: number,
+    closeSwipeVelocity: number,
     openAnimationTypes: AnimationTypes[]
     closeAnimationTypes: AnimationTypes[]
     allowCloseSwipeTypes: SwipeTypes[]
     animationMethod: AnimationMethods
-    renderProps: AnyObject | undefined
     animationOptions: AnimationConfig
     enableOnPressAnimation: boolean
+    onClose?: () => void
+    onOpen?: () => void
+    onPress?: () => void
 }
 
 export type NotificationContainerProps = {
-    render: (renderProps?: AnyObject) => ReactNode
     openDuration: number
     closeDuration: number
     autoCloseTimeout: number
@@ -79,9 +88,9 @@ export type NotificationContainerProps = {
     closeAnimationTypes: AnimationTypes[]
     allowCloseSwipeTypes: SwipeTypes[]
     animationOptions: AnimationConfig
-    onClose?: (renderProps?: AnyObject) => void
-    onOpen?: (renderProps?: AnyObject) => void
-    onPress?: (renderProps?: AnyObject) => void
+    onClose?: () => void
+    onOpen?: () => void
+    onPress?: () => void
     propsAreEqual?: (prevProps: Readonly<NotificationContainerProps>, nextProps: Readonly<NotificationContainerProps>) => boolean
 }
 
@@ -154,15 +163,12 @@ export class NotificationContainer extends Component<NotificationContainerProps,
     protected notifications: PreparedNotification[] = [];
 
     /**
-     *
-     * @type {null}
-     * @private
+     * Notification properties
      */
     protected notification: PreparedNotification | undefined;
 
     /**
-     *
-     * @type {boolean}
+     * Indicates the mounted component
      */
     protected mount = false;
 
@@ -196,10 +202,10 @@ export class NotificationContainer extends Component<NotificationContainerProps,
      */
     panResponder: PanResponderInstance = PanResponder.create({
         onStartShouldSetPanResponder: () => {
-            return !!(this.notification && (this.props.onPress || this.notification.onPress));
+            return !!(this.notification?.onPress);
         },
         onMoveShouldSetPanResponder: () => {
-            return !!(this.notification && this.notification.allowCloseSwipeTypes.length);
+            return !!(this.notification && this.notification.allowCloseSwipeTypes.length > 0);
         },
         onPanResponderGrant: () => {
             this.lockClosing = true;
@@ -235,8 +241,13 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             const absDy = Math.abs(gesture.dy);
             const absVx = Math.abs(gesture.vx);
             const absVy = Math.abs(gesture.vy);
-            const {onPress: onPressProp, closeSwipeVelocity, closeSwipeDistance} = this.props;
-            const {onPress: onPressNotify, allowCloseSwipeTypes, renderProps, enableOnPressAnimation} = this.notification;
+            const {
+                onPress,
+                allowCloseSwipeTypes,
+                enableOnPressAnimation,
+                closeSwipeVelocity,
+                closeSwipeDistance,
+            } = this.notification;
 
             if (absDx <= 1 && absDy <= 1) {
                 if (enableOnPressAnimation) {
@@ -252,15 +263,13 @@ export class NotificationContainer extends Component<NotificationContainerProps,
                             useNativeDriver: false,
                         }),
                     ]).start(() => {
-                        onPressProp && onPressProp(renderProps);
-                        onPressNotify && onPressNotify();
+                        onPress && onPress();
                         setTimeout(() => {
                             this.close();
                         });
                     });
                 } else {
-                    onPressProp && onPressProp(renderProps);
-                    onPressNotify && onPressNotify();
+                    onPress && onPress();
                     setTimeout(() => {
                         this.close();
                     });
@@ -374,18 +383,8 @@ export class NotificationContainer extends Component<NotificationContainerProps,
      */
     public open = (notification: Notification): void => {
         this.notifications.push({
-            renderProps: undefined,
-            onClose: null,
-            onOpen: null,
-            onPress: null,
             priority: 0,
-            animationOptions: this.props.animationOptions,
-            autoCloseTimeout: this.props.autoCloseTimeout,
-            openAnimationTypes: this.props.openAnimationTypes,
-            closeAnimationTypes: this.props.closeAnimationTypes,
-            allowCloseSwipeTypes: this.props.allowCloseSwipeTypes,
-            animationMethod: this.props.animationMethod,
-            enableOnPressAnimation: this.props.enableOnPressAnimation,
+            ...this.props,
             ...notification,
         });
         this.notifications.sort((a, b) => b.priority - a.priority);
@@ -401,9 +400,12 @@ export class NotificationContainer extends Component<NotificationContainerProps,
         }
 
         this.timeout && clearTimeout(this.timeout);
-        this.notification = this.notifications.shift();
 
-        if (!this.notification) {
+        const notification = this.notifications.shift();
+
+        if (notification) {
+            this.notification = notification;
+        } else {
             return;
         }
 
@@ -428,8 +430,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
         if (!this.notification) {
             return;
         }
-        const {openDuration, onOpen} = this.props;
-        const {animationMethod, renderProps, onOpen: onOpenNotify, animationOptions} = this.notification;
+        const {openDuration, animationMethod, onOpen, animationOptions} = this.notification;
         Animated[animationMethod](this.animation, {
             ...animationOptions,
             toValue: 1,
@@ -437,8 +438,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             useNativeDriver: false,
         }).start(({finished}) => {
             if (finished) {
-                onOpen && onOpen(renderProps);
-                onOpenNotify && onOpenNotify();
+                onOpen && onOpen();
                 this.startCloseTimeout();
             }
         });
@@ -461,7 +461,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             swipeClosingType: swipeClosingType || null,
         }, () => {
             this.animation.stopAnimation(() => {
-                const {closeDuration, onClose, nextNotificationInterval} = this.props;
+                const {closeDuration, onClose, nextNotificationInterval} = this.notification || this.props;
                 Animated.timing(this.animation, {
                     toValue: 0,
                     duration: closeDuration,
@@ -473,8 +473,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
                             swipeClosingType: null,
                         }, () => {
                             if (this.notification) {
-                                onClose && onClose(this.notification.renderProps);
-                                this.notification.onClose && this.notification.onClose();
+                                onClose && onClose();
                                 setTimeout(() => {
                                     this.isVisible = false;
                                     this.showNextNotification();
@@ -558,8 +557,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             return null;
         }
 
-        const {render} = this.props;
-        const {renderProps} = this.notification;
+        const {render} = this.notification;
 
         const animationStyles = this.getAnimationStyles();
 
@@ -595,7 +593,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
                         }
                     }}
                 >
-                    {render(renderProps)}
+                    {render()}
                 </View>
             </Animated.View>
         );
