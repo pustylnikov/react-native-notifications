@@ -1,6 +1,7 @@
-import React, {FC, RefObject, useRef} from 'react';
+import React, {FC} from 'react';
 import {Button, SafeAreaView, StatusBar, StyleSheet, Text, View} from 'react-native';
 import {AnimationMethods, AnimationTypes, NotificationContainer, SwipeTypes} from '../src';
+import {setNotificationsRef, openNotification} from '../src/helper';
 
 const TITLE_1 = '📨 Notification title';
 const TEXT_1 = 'Ut ac odio nunc. Nulla pellentesque blandit elit, ut commodo ante condimentum pulvinar. Nam convallis neque sit amet dolor placerat venenatis. Etiam ac aliquet justo.';
@@ -16,9 +17,6 @@ const Notification: FC<{ title: string, text: string }> = ({title, text}) => (
 );
 
 const App = () => {
-
-    const notificationRef: RefObject<NotificationContainer> = useRef(null);
-
     return (
         <>
             <StatusBar barStyle="dark-content" translucent backgroundColor="transparent"/>
@@ -29,7 +27,7 @@ const App = () => {
                         <Button
                             title="Show Notification"
                             onPress={() => {
-                                notificationRef.current && notificationRef.current.open({
+                                openNotification({
                                     renderProps: {
                                         title: TITLE_1,
                                         text: TEXT_1,
@@ -42,11 +40,12 @@ const App = () => {
             </SafeAreaView>
 
             <NotificationContainer
-                ref={notificationRef}
+                ref={setNotificationsRef}
                 showDuration={300}
                 hideDuration={300}
                 autoCloseTimeout={2000}
                 nextNotificationInterval={100}
+                enableOnPressAnimation
                 openAnimationTypes={[AnimationTypes.FADE, AnimationTypes.SLIDE_UP]}
                 closeAnimationTypes={[AnimationTypes.FADE, AnimationTypes.SLIDE_UP]}
                 allowCloseSwipeTypes={[SwipeTypes.SLIDE_UP, SwipeTypes.SLIDE_LEFT, SwipeTypes.SLIDE_RIGHT]}
