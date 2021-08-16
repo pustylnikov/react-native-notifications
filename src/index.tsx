@@ -1,12 +1,5 @@
 import React, {Component, ReactNode} from 'react';
-import {
-    Animated,
-    View,
-    StyleSheet,
-    Dimensions,
-    PanResponder,
-    PanResponderInstance,
-} from 'react-native';
+import {Animated, Dimensions, PanResponder, PanResponderInstance, StyleSheet, View} from 'react-native';
 
 type AnyObject = { [key: string]: any };
 
@@ -37,6 +30,7 @@ export type AnimationConfig = Partial<Animated.TimingAnimationConfig> | Partial<
 
 export type Notification = {
     render: () => ReactNode
+    id?: string | number
     openDuration?: number
     closeDuration?: number
     nextNotificationInterval?: number
@@ -57,6 +51,7 @@ export type Notification = {
 
 type PreparedNotification = {
     render: () => ReactNode
+    id?: string | number
     openDuration: number
     closeDuration: number
     nextNotificationInterval: number
@@ -100,6 +95,11 @@ type NotificationContainerState = {
     swipeClosingType: SwipeTypes | null,
     height: number,
 }
+
+export type CloseOptions = {
+    id?: string | number,
+    closeAnimationType?: SwipeTypes;
+};
 
 const {width} = Dimensions.get('window');
 
@@ -277,9 +277,13 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             } else if (this.swipeDirection === SwipeDirections.X) {
                 if (absVx >= closeSwipeVelocity || absDx >= closeSwipeDistance * width) {
                     if (gesture.dx > 0) {
-                        allowCloseSwipeTypes.includes(SwipeTypes.SLIDE_RIGHT) && this.close(SwipeTypes.SLIDE_RIGHT);
+                        allowCloseSwipeTypes.includes(SwipeTypes.SLIDE_RIGHT) && this.close({
+                            closeAnimationType: SwipeTypes.SLIDE_RIGHT,
+                        });
                     } else {
-                        allowCloseSwipeTypes.includes(SwipeTypes.SLIDE_LEFT) && this.close(SwipeTypes.SLIDE_LEFT);
+                        allowCloseSwipeTypes.includes(SwipeTypes.SLIDE_LEFT) && this.close({
+                            closeAnimationType: SwipeTypes.SLIDE_LEFT,
+                        });
                     }
                 } else {
                     Animated.spring(this.translateX, {
@@ -293,7 +297,9 @@ export class NotificationContainer extends Component<NotificationContainerProps,
             } else if (this.swipeDirection === SwipeDirections.Y) {
                 if (absVy >= closeSwipeVelocity || absDy >= closeSwipeDistance * this.state.height) {
                     if (gesture.dy < 0) {
-                        allowCloseSwipeTypes.includes(SwipeTypes.SLIDE_UP) && this.close(SwipeTypes.SLIDE_UP);
+                        allowCloseSwipeTypes.includes(SwipeTypes.SLIDE_UP) && this.close({
+                            closeAnimationType: SwipeTypes.SLIDE_UP,
+                        });
                     }
                 } else {
                     Animated.spring(this.translateY, {
@@ -449,7 +455,12 @@ export class NotificationContainer extends Component<NotificationContainerProps,
      *
      * @param swipeClosingType
      */
-    public close = (swipeClosingType?: SwipeTypes) => {
+    public close = ({id, closeAnimationType}: CloseOptions = {}) => {
+        if (id && (!this.notification || this.notification.id !== id)) {
+            this.notifications = this.notifications.filter(item => item.id !== id);
+            return;
+        }
+
         if (!this.isVisible) {
             return;
         }
@@ -458,7 +469,7 @@ export class NotificationContainer extends Component<NotificationContainerProps,
 
         this.setState({
             closing: true,
-            swipeClosingType: swipeClosingType || null,
+            swipeClosingType: closeAnimationType || null,
         }, () => {
             this.animation.stopAnimation(() => {
                 const {closeDuration, onClose, nextNotificationInterval} = this.notification || this.props;

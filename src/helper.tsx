@@ -1,4 +1,4 @@
-import {Notification, NotificationContainer} from './index';
+import {Notification, NotificationContainer, CloseOptions} from './index';
 
 let queue: Notification[] = [];
 let notificationsRef: NotificationContainer | null = null;
@@ -30,9 +30,9 @@ export function openNotification(notification: Notification) {
     }
 }
 
-export function closeNotification() {
+export function closeNotification(options?: CloseOptions) {
     if (notificationsRef) {
-        notificationsRef.close();
+        notificationsRef.close(options);
     }
 }
 

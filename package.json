@@ -1,7 +1,7 @@
 {
   "name": "@anvilapp/react-native-notifications",
-  "version": "0.2.0",
-  "description": "react native bottom sheet",
+  "version": "0.3.1",
+  "description": "react native notifications",
   "main": "index.js",
   "types": "index.d.ts",
   "author": "yura.pustylnikov@gmail.com",
